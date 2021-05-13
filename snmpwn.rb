@@ -53,3 +53,46 @@ def livehosts(arg, hostfile, cmd)
     spinner.success('(Complete)')
     livehosts
 end
+
+
+def findusers(arg, live, cmd)
+    users = []
+    userfile = File.readlines(arg[:users]).map(&:chomp)
+    spinner = TTY::Spinner.new("[:spinner] Checking Users... ", format: :spin_2)
+  
+    puts "\nEnumerating SNMPv3 users".light_blue.bold
+    live.each do |host|
+      userfile.each do |user|
+        begin
+        out, err = cmd.run!("snmpwalk -u #{user} #{host} iso.3.6.1.2.1.1.1.0")
+        rescue TTY::Command::TimeoutExceeded => @timeout_error
+          puts "Timeout: #{host} #{user}:#{password}".red.bold if @timeout_error
+        end
+          if !arg[:showfail]
+            spinner.spin
+          end
+          if out =~ /iso.3.6.1.2.1.1.1.0 = STRING:|SNMPv2-MIB::sysDescr.0 = STRING:/i
+            puts "FOUND: '#{user}' on #{host}".green.bold
+            users << [user, host]
+          elsif err =~ /authorizationError/i
+            puts "FOUND: '#{user}' on #{host}".green.bold
+            users << [user, host]
+          elsif err =~ /snmpwalk: Unknown user name/i
+            if arg[:showfail]
+            puts "FAILED: '#{user}' on #{host}".red.bold
+          end
+        end
+      end
+    end
+    if users.empty? or users.nil?
+      spinner.error('No users Found, script exiting! - Try a bigger/different list!')
+      exit
+    else
+      spinner.success('(Complete)')
+        puts "\nValid Users:".green.bold
+        puts users.to_table(:header => ['User', 'Host'])
+        users.each { |user| user.pop }.flatten!.uniq!
+        users.sort!
+    end
+    users
+end
