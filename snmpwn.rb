@@ -33,3 +33,23 @@ def arguments
       Optimist::die :enclist, "You must specify an encryption password list for the attacks".red.bold if opts[:enclist].nil?
     opts
 end
+
+
+def livehosts(arg, hostfile, cmd)
+    livehosts =[]
+    spinner = TTY::Spinner.new("[:spinner] Checking Host Availability... ", format: :spin_2)
+  
+    puts "\nChecking that the hosts are live!".green.bold
+    hostfile.each do |host|
+      out, err = cmd.run!("snmpwalk #{host}")
+      spinner.spin
+        if err !~ /snmpwalk: Timeout/
+          puts "#{host}: LIVE!".green.bold
+          livehosts << host
+        else
+          puts "#{host}: Timeout/No Connection - Removing from host list".red.bold
+        end
+      end
+    spinner.success('(Complete)')
+    livehosts
+end
