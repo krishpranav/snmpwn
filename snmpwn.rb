@@ -358,3 +358,18 @@ end
 
 
 
+arg = arguments
+hostfile = File.readlines(arg[:hosts]).map(&:chomp)
+passwords = File.readlines(arg[:passlist]).map(&:chomp)
+cryptopass = File.readlines(arg[:enclist]).map(&:chomp)
+log = Logger.new('debug.log')
+cmd = TTY::Command.new(output: log)
+live = livehosts(arg, hostfile, cmd)
+users = findusers(arg, live, cmd)
+no_auth = noauth(arg, users, live, cmd)
+anp = authnopriv(arg, users, live, passwords, cmd)
+ap = authpriv_md5des(arg, users, live, passwords, cmd, cryptopass)
+apaes = authpriv_md5aes(arg, users, live, passwords, cmd, cryptopass)
+apsd = authpriv_shades(arg, users, live, passwords, cmd, cryptopass)
+apsa = authpriv_shaaes(arg, users, live, passwords, cmd, cryptopass)
+print(users, no_auth, anp, ap, apaes, apsd, apsa)
